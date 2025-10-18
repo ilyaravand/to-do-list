@@ -1,6 +1,6 @@
 # todolist/core/services.py
 from datetime import date
-from typing import Optional
+from typing import Optional, Iterable
 from .models import Project, Task
 from .repository import ProjectRepository, TaskRepository
 from .errors import (
@@ -219,3 +219,9 @@ class TaskService:
         if not ok:
             # unreachable normally, but keep explicit for clarity
             raise TaskNotFound(f"task id {task_id} not found")
+
+    def list_tasks_for_project(self, project_id: int):
+        """Return all tasks of a given project (sorted by created_at)."""
+        if not self.projects.get_by_id(project_id):
+            raise ProjectNotFound(f"project id {project_id} not found")
+        return sorted(self.tasks.all_for_project(project_id), key=lambda t: t.created_at)

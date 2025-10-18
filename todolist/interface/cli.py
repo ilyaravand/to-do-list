@@ -47,9 +47,10 @@ def action_list_projects() -> None:
     print("Projects")
     print(_line())
     if _repo.count() == 0:
-        print("(no projects yet)")
+        print("(no projects yet)")  # friendly empty message
     else:
-        for p in sorted(_repo.all(), key=lambda x: x.id):
+        # sort by creation time, as required by the PDF
+        for p in sorted(_repo.all(), key=lambda x: x.created_at):
             print(f"- #{p.id} | {p.name}  —  {p.description or '(no description)'}")
     _pause()
 
@@ -224,6 +225,33 @@ def action_delete_task() -> None:
         print(f"\n[error] {e}")
     _pause()
 
+def action_list_project_tasks() -> None:
+    print(_line())
+    print("Tasks of a project")
+    print(_line())
+    pid_str = input("Project ID: ").strip()
+    if not pid_str.isdigit():
+        print("\n[error] invalid project id")
+        return _pause()
+    pid = int(pid_str)
+
+    try:
+        tasks = _task_service.list_tasks_for_project(pid)
+    except ProjectNotFound as e:
+        # suitable message if project does not exist
+        print(f"\n[error] {e}")
+        return _pause()
+
+    if not tasks:
+        # suitable message if project exists but has no tasks
+        print(f"(no tasks for project #{pid})")
+    else:
+        # required fields per PDF: id, title, status, deadline
+        for t in tasks:
+            d = t.deadline.isoformat() if t.deadline else "—"
+            print(f"- #{t.id} | [{t.status}] {t.title}  —  deadline: {d}")
+    _pause()
+
 
 def main() -> None:
     actions: dict[str, tuple[str, Callable[[], None]]] = {
@@ -236,6 +264,7 @@ def main() -> None:
         "7": ("Change task status", action_change_task_status),
         "8": ("Edit task", action_edit_task),
         "9": ("Delete task", action_delete_task),
+        "10": ("List tasks of a project", action_list_project_tasks),
         "0": ("Exit", action_exit),
     }
 
