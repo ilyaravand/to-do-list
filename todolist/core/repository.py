@@ -73,3 +73,27 @@ class TaskRepository:
         for tid in ids:
             self._by_id.pop(tid, None)
         return len(ids)
+
+    def update(self, t: Task, *, title=None, description=None, status=None, deadline=None) -> Task:
+        if title is not None:
+            t.title = title
+        if description is not None:
+            t.description = description
+        if status is not None:
+            t.status = status
+        if deadline is not None:
+            t.deadline = deadline
+        return t
+
+    def delete(self, task_id: int) -> bool:
+        t = self._by_id.pop(task_id, None)
+        if not t:
+            return False
+        # remove from project index set
+        ids = self._by_project.get(t.project_id)
+        if ids:
+            ids.discard(task_id)
+            if not ids:
+                self._by_project.pop(t.project_id, None)
+        return True
+

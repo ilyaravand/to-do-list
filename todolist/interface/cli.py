@@ -1,21 +1,19 @@
 # todolist/interface/cli.py
 from __future__ import annotations
-
-
-
 import sys
 from typing import Callable
 from ..config.settings import settings
 from ..core.repository import ProjectRepository, TaskRepository
 from ..core.services import ProjectService, TaskService
 from ..core.errors import (
-    ProjectLimitReached, DuplicateProjectName, ValidationError, ProjectNotFound, TaskLimitReached
+    ProjectLimitReached, DuplicateProjectName, ValidationError, ProjectNotFound,
+    TaskLimitReached, TaskNotFound
 )
 
 _repo = ProjectRepository()
 _task_repo = TaskRepository()
 
-_service = ProjectService(_repo)
+_service = ProjectService(_repo, cascade_delete_tasks=_task_repo.delete_by_project)
 _task_service = TaskService(project_repo=_repo, task_repo=_task_repo)
 
 
@@ -159,6 +157,74 @@ def action_delete_project() -> None:
         print(f"\n[error] {e}")
     _pause()
 
+def action_change_task_status() -> None:
+    print(_line()); print("Change task status"); print(_line())
+    tid_str = input("Task ID: ").strip()
+    if not tid_str.isdigit():
+        print("\n[error] invalid task id"); return _pause()
+    tid = int(tid_str)
+    status = input("New status [todo|doing|done]: ").strip().lower()
+    try:
+        t = _task_service.set_task_status(tid, status)
+        print(f"\n[ok] task #{t.id} status → {t.status}")
+    except (TaskNotFound, ValidationError) as e:
+        print(f"\n[error] {e}")
+    _pause()
+
+
+def action_edit_task() -> None:
+    print(_line()); print("Edit task"); print(_line())
+    tid_str = input("Task ID to edit: ").strip()
+    if not tid_str.isdigit():
+        print("\n[error] invalid task id"); return _pause()
+    tid = int(tid_str)
+
+    # Optional: fetch current task to show values (nice UX)
+    t = _task_repo.get_by_id(tid)
+    if not t:
+        print(f"\n[error] task #{tid} not found"); return _pause()
+    print(f"Current title: {t.title}")
+    print(f"Current description: {t.description or '(none)'}")
+    print(f"Current status: {t.status}")
+    print(f"Current deadline: {t.deadline or '(none)'}")
+
+    title = input("New title (blank to keep): ").strip()
+    desc = input("New description (blank to keep): ").strip()
+    status = input("New status [todo|doing|done] (blank to keep): ").strip().lower()
+    deadline = input("New deadline YYYY-MM-DD (blank to keep): ").strip()
+
+    kwargs = {}
+    if title != "": kwargs["title"] = title
+    if desc != "": kwargs["description"] = desc
+    if status != "": kwargs["status"] = status
+    if deadline != "": kwargs["deadline"] = deadline
+
+    try:
+        t2 = _task_service.update_task(tid, **kwargs)
+        d_show = t2.deadline.isoformat() if t2.deadline else "—"
+        print(f"\n[ok] updated task #{t2.id}  status={t2.status}  deadline={d_show}")
+    except (TaskNotFound, ValidationError) as e:
+        print(f"\n[error] {e}")
+    _pause()
+
+def action_delete_task() -> None:
+    print(_line()); print("Delete task"); print(_line())
+    pid_str = input("Project ID: ").strip()
+    tid_str = input("Task ID: ").strip()
+    if not (pid_str.isdigit() and tid_str.isdigit()):
+        print("\n[error] invalid ids"); return _pause()
+    pid, tid = int(pid_str), int(tid_str)
+    confirm = input(f"Delete task #{tid} in project #{pid}? [y/N]: ").strip().lower()
+    if confirm not in {"y", "yes"}:
+        print("\n[cancelled] no changes made."); return _pause()
+    try:
+        _task_service.delete_task(pid, tid)
+        print(f"\n[ok] deleted task #{tid} from project #{pid}")
+    except (TaskNotFound, ValidationError) as e:
+        print(f"\n[error] {e}")
+    _pause()
+
+
 def main() -> None:
     actions: dict[str, tuple[str, Callable[[], None]]] = {
         "1": ("Create project", action_create_project),
@@ -167,6 +233,9 @@ def main() -> None:
         "4": ("Edit project", action_edit_project),
         "5": ("Delete project", action_delete_project),
         "6": ("Add task", action_add_task),
+        "7": ("Change task status", action_change_task_status),
+        "8": ("Edit task", action_edit_task),
+        "9": ("Delete task", action_delete_task),
         "0": ("Exit", action_exit),
     }
 

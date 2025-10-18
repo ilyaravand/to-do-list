@@ -4,7 +4,7 @@ from typing import Optional
 from .models import Project, Task
 from .repository import ProjectRepository, TaskRepository
 from .errors import (
-    ProjectLimitReached, DuplicateProjectName, ValidationError, ProjectNotFound, TaskLimitReached
+    ProjectLimitReached, DuplicateProjectName, ValidationError, ProjectNotFound, TaskLimitReached, TaskNotFound
 )
 from .utils import word_count
 from ..config.settings import settings
@@ -150,3 +150,72 @@ class TaskService:
             status=st,
             deadline=dl,
         ))
+
+    def set_task_status(self, task_id: int, status: str) -> Task:
+        """Step 5: change task status (only todo|doing|done)."""
+        t = self.tasks.get_by_id(task_id)
+        if not t:
+            raise TaskNotFound(f"task id {task_id} not found")
+
+        st = (status or "").strip().lower()
+        if st not in TASK_STATUSES:
+            raise ValidationError(f"status must be one of {sorted(TASK_STATUSES)}")
+        return self.tasks.update(t, status=st)
+
+    def update_task(
+        self,
+        task_id: int,
+        *,
+        title: str | None = None,
+        description: str | None = None,
+        status: str | None = None,
+        deadline: str | date | None = None,
+    ) -> Task:
+        """Step 6: edit task (title/desc/status/deadline with validations)."""
+        t = self.tasks.get_by_id(task_id)
+        if not t:
+            raise TaskNotFound(f"task id {task_id} not found")
+
+        if title is None and description is None and status is None and deadline is None:
+            raise ValidationError("nothing to update; provide at least one field")
+
+        # validate words
+        if title is not None and word_count(title) > TASK_TITLE_MAX_WORDS:
+            raise ValidationError(f"title must be ≤ {TASK_TITLE_MAX_WORDS} words")
+        if description is not None and word_count(description) > TASK_DESC_MAX_WORDS:
+            raise ValidationError(f"description must be ≤ {TASK_DESC_MAX_WORDS} words")
+
+        # validate status
+        st = None
+        if status is not None:
+            st = status.strip().lower()
+            if st not in TASK_STATUSES:
+                raise ValidationError(f"status must be one of {sorted(TASK_STATUSES)}")
+
+        # validate deadline
+        dl = None
+        if deadline is not None:
+            dl = self._parse_deadline(deadline)
+
+        return self.tasks.update(
+            t,
+            title=title if title is not None else None,
+            description=description if description is not None else None,
+            status=st,
+            deadline=dl,
+        )
+
+    def delete_task(self, project_id: int, task_id: int) -> None:
+        """Step 7: delete task by id *within the same project*."""
+        t = self.tasks.get_by_id(task_id)
+        if not t:
+            raise TaskNotFound(f"task id {task_id} not found")
+        if t.project_id != project_id:
+            # must match the same project according to acceptance criteria
+            raise ValidationError(
+                f"task #{task_id} does not belong to project #{project_id}"
+            )
+        ok = self.tasks.delete(task_id)
+        if not ok:
+            # unreachable normally, but keep explicit for clarity
+            raise TaskNotFound(f"task id {task_id} not found")
