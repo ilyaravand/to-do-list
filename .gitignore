@@ -1,2 +1,39 @@
-/.idea
+# OS
+.DS_Store
+
+# IDE/Editors
+/.idea/
+.vscode/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments (Poetry in-project venv)
+.venv/
+
+# Packaging / build artifacts
+build/
+dist/
+*.egg-info/
+
+# Tests / coverage / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Logs
+*.log
+
+# Environment files
 .env
+.env.local
+.env.*.local
+# Keep template env files in git
+!.env.example
+!.env.*.example
