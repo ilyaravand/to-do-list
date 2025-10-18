@@ -1,7 +1,10 @@
 # todolist/core/services.py
+from typing import Optional
 from .models import Project
 from .repository import ProjectRepository
-from .errors import ProjectLimitReached, DuplicateProjectName, ValidationError
+from .errors import (
+    ProjectLimitReached, DuplicateProjectName, ValidationError, ProjectNotFound
+)
 from .utils import word_count
 from ..config.settings import settings
 
@@ -30,3 +33,39 @@ class ProjectService:
             raise DuplicateProjectName("project name must be unique")
 
         return self.repo.add(Project(name=name, description=description))
+
+    def update_project(
+        self,
+        pid: int,
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> Project:
+        if name is None and description is None:
+            raise ValidationError("nothing to update; provide name and/or description")
+
+        p = self.repo.get_by_id(pid)
+        if not p:
+            raise ProjectNotFound(f"project id {pid} not found")
+
+        # validate name if provided
+        if name is not None:
+            name = name.strip()
+            if not name:
+                raise ValidationError("name cannot be empty")
+            if word_count(name) > NAME_MAX_WORDS:
+                raise ValidationError(f"name must be ≤ {NAME_MAX_WORDS} words")
+
+            existing = self.repo.get_by_name(name)
+            if existing and existing.id != pid:
+                raise DuplicateProjectName("project name must be unique")
+
+        # validate description if provided
+        if description is not None and word_count(description) > DESC_MAX_WORDS:
+            raise ValidationError(f"description must be ≤ {DESC_MAX_WORDS} words")
+
+        return self.repo.update(
+            p,
+            name=name if name is not None else None,
+            description=description if description is not None else None,
+        )
