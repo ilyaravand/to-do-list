@@ -5,15 +5,18 @@ from __future__ import annotations
 
 import sys
 from typing import Callable
-from ..core.repository import ProjectRepository
-from ..core.services import ProjectService
 from ..config.settings import settings
+from ..core.repository import ProjectRepository, TaskRepository
+from ..core.services import ProjectService, TaskService
 from ..core.errors import (
-    ProjectLimitReached, DuplicateProjectName, ValidationError, ProjectNotFound
+    ProjectLimitReached, DuplicateProjectName, ValidationError, ProjectNotFound, TaskLimitReached
 )
 
 _repo = ProjectRepository()
+_task_repo = TaskRepository()
+
 _service = ProjectService(_repo)
+_task_service = TaskService(project_repo=_repo, task_repo=_task_repo)
 
 
 def _line(ch: str = "─", n: int = 50) -> str:
@@ -98,6 +101,40 @@ def action_edit_project() -> None:
         print(f"\n[error] {e}")
     _pause()
 
+def action_add_task() -> None:
+    print(_line())
+    print("Add a task to a project")
+    print(_line())
+
+    pid_str = input("Project ID: ").strip()
+    if not pid_str.isdigit():
+        print("\n[error] invalid project id")
+        return _pause()
+    pid = int(pid_str)
+
+    title = input("Title (≤ 30 words): ").strip()
+    desc = input("Description (≤ 150 words, optional): ").strip()
+    status = input("Status [todo|doing|done] (blank = todo): ").strip().lower()
+    deadline = input("Deadline (YYYY-MM-DD, optional): ").strip()
+
+    status = status or "todo"
+    deadline = deadline or None
+
+    try:
+        t = _task_service.create_task(
+            project_id=pid,
+            title=title,
+            description=desc,
+            status=status,
+            deadline=deadline,
+        )
+        shown_deadline = t.deadline.isoformat() if t.deadline else "—"
+        print(f"\n[ok] Task created: id={t.id} project=#{t.project_id} status={t.status} deadline={shown_deadline}")
+    except (ProjectNotFound, TaskLimitReached, ValidationError) as e:
+        print(f"\n[error] {e}")
+    _pause()
+
+
 def action_delete_project() -> None:
     print(_line())
     print("Delete a project")
@@ -129,6 +166,7 @@ def main() -> None:
         "3": ("Show info (limit & count)", action_info),
         "4": ("Edit project", action_edit_project),
         "5": ("Delete project", action_delete_project),
+        "6": ("Add task", action_add_task),
         "0": ("Exit", action_exit),
     }
 

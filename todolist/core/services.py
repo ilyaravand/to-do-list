@@ -1,15 +1,20 @@
 # todolist/core/services.py
+from datetime import date
 from typing import Optional
-from .models import Project
-from .repository import ProjectRepository
+from .models import Project, Task
+from .repository import ProjectRepository, TaskRepository
 from .errors import (
-    ProjectLimitReached, DuplicateProjectName, ValidationError, ProjectNotFound
+    ProjectLimitReached, DuplicateProjectName, ValidationError, ProjectNotFound, TaskLimitReached
 )
 from .utils import word_count
 from ..config.settings import settings
 
 NAME_MAX_WORDS = 30
 DESC_MAX_WORDS = 150
+
+TASK_TITLE_MAX_WORDS = 30
+TASK_DESC_MAX_WORDS = 150
+TASK_STATUSES = {"todo", "doing", "done"}
 
 class ProjectService:
     def __init__(self, repo: ProjectRepository, cascade_delete_tasks=None) -> None:
@@ -90,3 +95,58 @@ class ProjectService:
 
         # Finally delete the project itself
         self.repo.delete(pid)
+
+
+class TaskService:
+    def __init__(self, project_repo: ProjectRepository, task_repo: TaskRepository) -> None:
+        self.projects = project_repo
+        self.tasks = task_repo
+
+    def _parse_deadline(self, deadline: Optional[str | date]) -> Optional[date]:
+        if deadline in (None, ""):
+            return None
+        if isinstance(deadline, date):
+            return deadline
+        try:
+            # expect ISO format YYYY-MM-DD
+            return date.fromisoformat(deadline)
+        except Exception as e:
+            raise ValidationError("deadline must be a valid date in YYYY-MM-DD format") from e
+
+    def create_task(
+        self,
+        project_id: int,
+        title: str,
+        description: str = "",
+        status: Optional[str] = None,
+        deadline: Optional[str | date] = None,
+    ) -> Task:
+        # project must exist
+        if not self.projects.get_by_id(project_id):
+            raise ProjectNotFound(f"project id {project_id} not found")
+
+        # cap on total number of tasks (per PDF env cap)
+        if self.tasks.count() >= settings.MAX_NUMBER_OF_TASK:
+            raise TaskLimitReached(f"MAX_NUMBER_OF_TASK={settings.MAX_NUMBER_OF_TASK} reached")
+
+        # word limits
+        if word_count(title) > TASK_TITLE_MAX_WORDS:
+            raise ValidationError(f"title must be ≤ {TASK_TITLE_MAX_WORDS} words")
+        if word_count(description) > TASK_DESC_MAX_WORDS:
+            raise ValidationError(f"description must be ≤ {TASK_DESC_MAX_WORDS} words")
+
+        # status
+        st = (status or "todo").strip().lower()
+        if st not in TASK_STATUSES:
+            raise ValidationError(f"status must be one of {sorted(TASK_STATUSES)}")
+
+        # deadline (optional but must be valid date if provided)
+        dl = self._parse_deadline(deadline)
+
+        return self.tasks.add(Task(
+            project_id=project_id,
+            title=title.strip(),
+            description=description.strip(),
+            status=st,
+            deadline=dl,
+        ))

@@ -1,5 +1,5 @@
-from typing import Dict, Iterable, Optional
-from .models import Project
+from typing import Dict, Iterable, Optional, Set
+from .models import Project, Task
 
 class ProjectRepository:
     def __init__(self) -> None:
@@ -45,3 +45,31 @@ class ProjectRepository:
             return False
         self._by_name.pop(p.name.lower(), None)
         return True
+
+class TaskRepository:
+    def __init__(self) -> None:
+        self._by_id: Dict[int, Task] = {}
+        self._by_project: Dict[int, Set[int]] = {}
+
+    def add(self, t: Task) -> Task:
+        self._by_id[t.id] = t
+        self._by_project.setdefault(t.project_id, set()).add(t.id)
+        return t
+
+    def get_by_id(self, tid: int) -> Optional[Task]:
+        return self._by_id.get(tid)
+
+    def all_for_project(self, project_id: int) -> Iterable[Task]:
+        ids = self._by_project.get(project_id, set())
+        for tid in sorted(ids):
+            yield self._by_id[tid]
+
+    def count(self) -> int:
+        return len(self._by_id)
+
+    # used by Project cascade-delete
+    def delete_by_project(self, project_id: int) -> int:
+        ids = list(self._by_project.pop(project_id, []))
+        for tid in ids:
+            self._by_id.pop(tid, None)
+        return len(ids)
