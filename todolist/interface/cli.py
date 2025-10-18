@@ -98,12 +98,37 @@ def action_edit_project() -> None:
         print(f"\n[error] {e}")
     _pause()
 
+def action_delete_project() -> None:
+    print(_line())
+    print("Delete a project")
+    print(_line())
+    pid_str = input("Project ID to delete: ").strip()
+    if not pid_str.isdigit():
+        print("\n[error] invalid id")
+        return _pause()
+
+    pid = int(pid_str)
+    confirm = input(
+        f"Are you sure you want to delete project #{pid}? This will also delete its tasks. [y/N]: "
+    ).strip().lower()
+    if confirm not in {"y", "yes"}:
+        print("\n[cancelled] no changes made.")
+        return _pause()
+
+    try:
+        _service.delete_project(pid)
+        print(f"\n[ok] deleted project #{pid}")
+    except ProjectNotFound as e:
+        print(f"\n[error] {e}")
+    _pause()
+
 def main() -> None:
     actions: dict[str, tuple[str, Callable[[], None]]] = {
         "1": ("Create project", action_create_project),
         "2": ("List projects", action_list_projects),
         "3": ("Show info (limit & count)", action_info),
-        "4": ("Edit project", action_edit_project),   # ← new
+        "4": ("Edit project", action_edit_project),
+        "5": ("Delete project", action_delete_project),
         "0": ("Exit", action_exit),
     }
 

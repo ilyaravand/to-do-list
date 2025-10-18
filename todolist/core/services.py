@@ -12,8 +12,13 @@ NAME_MAX_WORDS = 30
 DESC_MAX_WORDS = 150
 
 class ProjectService:
-    def __init__(self, repo: ProjectRepository) -> None:
+    def __init__(self, repo: ProjectRepository, cascade_delete_tasks=None) -> None:
+        """
+        :param repo: ProjectRepository instance
+        :param cascade_delete_tasks: optional callable(project_id:int) to cascade-delete tasks
+        """
         self.repo = repo
+        self._cascade_delete_tasks = cascade_delete_tasks
 
     def create_project(self, name: str, description: str = "") -> Project:
         # Validate counts
@@ -69,3 +74,19 @@ class ProjectService:
             name=name if name is not None else None,
             description=description if description is not None else None,
         )
+
+    def delete_project(self, pid: int) -> None:
+        """
+        Delete a project by id.
+        Also cascade-delete its tasks if a cascade hook is provided.
+        """
+        p = self.repo.get_by_id(pid)
+        if not p:
+            raise ProjectNotFound(f"project id {pid} not found")
+
+        # Cascade delete tasks (if a hook is provided)
+        if callable(self._cascade_delete_tasks):
+            self._cascade_delete_tasks(pid)
+
+        # Finally delete the project itself
+        self.repo.delete(pid)

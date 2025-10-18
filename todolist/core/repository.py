@@ -34,3 +34,14 @@ class ProjectRepository:
         if description is not None:
             p.description = description
         return p
+
+    def delete(self, pid: int) -> bool:
+        """
+        Delete a project by id. Returns True if deleted, False if not found.
+        Also updates the name index.
+        """
+        p = self._by_id.pop(pid, None)
+        if not p:
+            return False
+        self._by_name.pop(p.name.lower(), None)
+        return True
