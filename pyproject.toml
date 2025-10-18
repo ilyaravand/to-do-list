@@ -2,13 +2,19 @@
 name = "to-do-list"
 version = "0.1.0"
 description = ""
-authors = ["ilya <ilyaravand@gmail.com>"]
+authors = ["ilya <ilyaravand@gmail.com>", "fateme <fateme.abolhassani91@gmail.com>"]
 readme = "README.md"
+packages = [{ include = "todolist" }]
 
 [tool.poetry.dependencies]
 python = "^3.12"
+python-dotenv = "^1.1.1"
 
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+
+[tool.poetry.scripts]
+todo = "todolist.interface.cli:main"
