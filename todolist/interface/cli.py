@@ -1,12 +1,16 @@
 # todolist/interface/cli.py
 from __future__ import annotations
 
+
+
 import sys
 from typing import Callable
 from ..core.repository import ProjectRepository
 from ..core.services import ProjectService
-from ..core.errors import ProjectLimitReached, DuplicateProjectName, ValidationError
 from ..config.settings import settings
+from ..core.errors import (
+    ProjectLimitReached, DuplicateProjectName, ValidationError, ProjectNotFound
+)
 
 _repo = ProjectRepository()
 _service = ProjectService(_repo)
@@ -63,11 +67,43 @@ def action_exit() -> None:
     raise SystemExit(0)
 
 
+def action_edit_project() -> None:
+    print(_line())
+    print("Edit a project")
+    print(_line())
+    pid_str = input("Project ID to edit: ").strip()
+    if not pid_str.isdigit():
+        print("\n[error] invalid id")
+        return _pause()
+
+    pid = int(pid_str)
+    current = _repo.get_by_id(pid)
+    if not current:
+        print(f"\n[error] project #{pid} not found")
+        return _pause()
+
+    print(f"Current name: {current.name}")
+    print(f"Current description: {current.description or '(none)'}")
+
+    new_name = input("New name (blank to keep): ").strip()
+    new_desc = input("New description (blank to keep): ").strip()
+
+    if new_name == "": new_name = None
+    if new_desc == "": new_desc = None
+
+    try:
+        p = _service.update_project(pid, name=new_name, description=new_desc)
+        print(f"\n[ok] updated: id={p.id} name='{p.name}'")
+    except (DuplicateProjectName, ValidationError, ProjectNotFound) as e:
+        print(f"\n[error] {e}")
+    _pause()
+
 def main() -> None:
     actions: dict[str, tuple[str, Callable[[], None]]] = {
         "1": ("Create project", action_create_project),
         "2": ("List projects", action_list_projects),
         "3": ("Show info (limit & count)", action_info),
+        "4": ("Edit project", action_edit_project),   # ← new
         "0": ("Exit", action_exit),
     }
 
