@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import Enum
 
 from sqlalchemy import (
     String,
     Text,
     DateTime,
-    Enum,
+    Enum as SAEnum,
     ForeignKey,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -14,7 +15,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from todolist.db.base import Base
 
 
-class TaskStatusEnum(str):
+class TaskStatusEnum(str, Enum):
     TODO = "todo"
     DOING = "doing"
     DONE = "done"
@@ -32,7 +33,7 @@ class Task(Base):
 
     # Status: todo / doing / done
     status: Mapped[str] = mapped_column(
-        Enum(
+        SAEnum(
             TaskStatusEnum.TODO,
             TaskStatusEnum.DOING,
             TaskStatusEnum.DONE,
