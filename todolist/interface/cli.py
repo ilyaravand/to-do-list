@@ -3,15 +3,18 @@ from __future__ import annotations
 import sys
 from typing import Callable
 from ..config.settings import settings
-from ..core.repository import ProjectRepository, TaskRepository
+# from ..core.repository import ProjectRepository, TaskRepository
+from ..core.repository import InMemoryProjectRepository, InMemoryTaskRepository
 from ..core.services import ProjectService, TaskService
 from ..core.errors import (
     ProjectLimitReached, DuplicateProjectName, ValidationError, ProjectNotFound,
     TaskLimitReached, TaskNotFound
 )
 
-_repo = ProjectRepository()
-_task_repo = TaskRepository()
+# _repo = ProjectRepository()
+# _task_repo = TaskRepository()
+_repo = InMemoryProjectRepository()
+_task_repo = InMemoryTaskRepository()
 
 _service = ProjectService(_repo, cascade_delete_tasks=_task_repo.delete_by_project)
 _task_service = TaskService(project_repo=_repo, task_repo=_task_repo)
@@ -255,8 +258,10 @@ def action_list_project_tasks() -> None:
 def action_reset_memory() -> None:
     global _repo, _task_repo, _service, _task_service
     # reinitialize all in-memory stores
-    _repo = ProjectRepository()
-    _task_repo = TaskRepository()
+    # _repo = ProjectRepository()
+    # _task_repo = TaskRepository()
+    _repo = InMemoryProjectRepository()
+    _task_repo = InMemoryTaskRepository()
     _service = ProjectService(_repo, cascade_delete_tasks=_task_repo.delete_by_project)
     _task_service = TaskService(project_repo=_repo, task_repo=_task_repo)
     print("\n[ok] in-memory state reset (projects & tasks cleared)")
