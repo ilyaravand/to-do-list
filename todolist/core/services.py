@@ -96,6 +96,17 @@ class ProjectService:
         # Finally delete the project itself
         self.repo.delete(pid)
 
+    def list_projects(self):
+        """Return all projects as core Project models, ordered by creation time."""
+        return list(self.repo.all())
+
+    def get_project(self, pid: int):
+        """Return a single project by id or raise ProjectNotFound."""
+        p = self.repo.get_by_id(pid)
+        if not p:
+            raise ProjectNotFound(f"project id {pid} not found")
+        return p
+
 
 class TaskService:
     def __init__(self, project_repo: ProjectRepository, task_repo: TaskRepository) -> None:
