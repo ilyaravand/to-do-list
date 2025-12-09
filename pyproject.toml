@@ -22,7 +22,8 @@ build-backend = "poetry.core.masonry.api"
 
 
 [tool.poetry.scripts]
-todo = "todolist.interface.cli:main"
+todolist-cli = "todolist.interface.cli:main"
 todolist-autoclose = "todolist.commands.autoclose_overdue:main"
 todolist-db-cli = "todolist.interface.db_cli:main"
 todolist-autoclose-scheduler = "todolist.commands.autoclose_scheduler:main"
+todolist-api = "todolist.main:app"

@@ -349,37 +349,50 @@ def action_list_project_tasks() -> None:
 # If you want a "wipe all data" command later, we can add a separate action for that.
 
 
-def main() -> None:
-    actions: dict[str, tuple[str, Callable[[], None]]] = {
-        "1": ("Create project", action_create_project),
-        "2": ("List projects", action_list_projects),
-        "3": ("Show info (limit & count)", action_info),
-        "4": ("Edit project", action_edit_project),
-        "5": ("Delete project", action_delete_project),
-        "6": ("Add task", action_add_task),
-        "7": ("Change task status", action_change_task_status),
-        "8": ("Edit task", action_edit_task),
-        "9": ("Delete task", action_delete_task),
-        "10": ("List tasks of a project", action_list_project_tasks),
-        "0": ("Exit", action_exit),
-    }
+# def main() -> None:
+#     actions: dict[str, tuple[str, Callable[[], None]]] = {
+#         "1": ("Create project", action_create_project),
+#         "2": ("List projects", action_list_projects),
+#         "3": ("Show info (limit & count)", action_info),
+#         "4": ("Edit project", action_edit_project),
+#         "5": ("Delete project", action_delete_project),
+#         "6": ("Add task", action_add_task),
+#         "7": ("Change task status", action_change_task_status),
+#         "8": ("Edit task", action_edit_task),
+#         "9": ("Delete task", action_delete_task),
+#         "10": ("List tasks of a project", action_list_project_tasks),
+#         "0": ("Exit", action_exit),
+#     }
+#
+#     try:
+#         while True:
+#             print("\n" + _line())
+#             print("To-Do CLI (DB-backed) — Menu")
+#             print(_line())
+#             for key, (label, _) in actions.items():
+#                 print(f" {key}) {label}")
+#             choice = input("\nSelect an option: ").strip()
+#             action = actions.get(choice)
+#             if action:
+#                 action[1]()
+#             else:
+#                 print("[error] Invalid choice. Try again.")
+#     except KeyboardInterrupt:
+#         print("\n\nInterrupted. Exiting…")
+#         sys.exit(130)
+# todolist/interface/db_cli.py
 
-    try:
-        while True:
-            print("\n" + _line())
-            print("To-Do CLI (DB-backed) — Menu")
-            print(_line())
-            for key, (label, _) in actions.items():
-                print(f" {key}) {label}")
-            choice = input("\nSelect an option: ").strip()
-            action = actions.get(choice)
-            if action:
-                action[1]()
-            else:
-                print("[error] Invalid choice. Try again.")
-    except KeyboardInterrupt:
-        print("\n\nInterrupted. Exiting…")
-        sys.exit(130)
+def main() -> None:
+    """
+    Deprecated DB CLI entry point.
+    Use normal database tools or the HTTP API instead.
+    """
+    message = (
+        "The DB CLI is deprecated.\n"
+        "Database migrations and setup should be handled by proper tools, "
+        "and application usage goes through the HTTP API.\n"
+    )
+    print(message)
 
 
 if __name__ == "__main__":
