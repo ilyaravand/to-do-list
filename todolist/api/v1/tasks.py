@@ -10,9 +10,10 @@ from todolist.core.errors import (
     ProjectNotFound,
     TaskLimitReached,
     ValidationError,
+    TaskNotFound,
 )
 from todolist.repositories.sqlalchemy_task import SqlAlchemyTaskRepository
-from todolist.schemas.task import TaskCreate, TaskRead, TaskUpdate  # TaskUpdate for later
+from todolist.schemas.task import TaskCreate, TaskRead, TaskUpdate
 from todolist.repositories.sqlalchemy_project import SqlAlchemyProjectRepository
 
 
@@ -156,4 +157,60 @@ def create_task_for_project(
         project_id=core_task.project_id,
         created_at=core_task.created_at,
         closed_at=None,  # core Task doesn't track this; fine to expose as null
+    )
+
+@router.patch(
+    "/{task_id}",
+    response_model=TaskRead,
+    summary="Update a task in a project",
+    description="Partially update a task's title, description, status or deadline.",
+)
+def update_task_for_project(
+    project_id: int,
+    task_id: int,
+    payload: TaskUpdate,
+    service: TaskService = Depends(get_task_service),
+):
+    """
+    Update a task using TaskService.update_task.
+    We also enforce that the task really belongs to the given project.
+    """
+    try:
+        core_task = service.update_task(
+            task_id=task_id,
+            title=payload.title,
+            description=payload.description,
+            status=payload.status.value if payload.status is not None else None,
+            deadline=payload.deadline,
+        )
+    except TaskNotFound as exc:
+        # task does not exist
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        )
+    except ValidationError as exc:
+        # invalid title/description/status/deadline according to your business rules
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
+    # extra safety: URL's project_id must match the task's project_id
+    if core_task.project_id != project_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"task #{task_id} does not belong to project #{project_id}",
+        )
+
+    # Map core Task -> TaskRead
+    return TaskRead(
+        id=core_task.id,
+        title=core_task.title,
+        description=core_task.description,
+        status=core_task.status,
+        deadline=core_task.deadline,
+        project_id=core_task.project_id,
+        created_at=core_task.created_at,
+        closed_at=None,   # domain Task doesn’t track this; ok to expose as null
     )
