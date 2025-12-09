@@ -3,15 +3,18 @@ from __future__ import annotations
 import sys
 from typing import Callable
 from ..config.settings import settings
-from ..core.repository import ProjectRepository, TaskRepository
+# from ..core.repository import ProjectRepository, TaskRepository
+from ..core.repository import InMemoryProjectRepository, InMemoryTaskRepository
 from ..core.services import ProjectService, TaskService
 from ..core.errors import (
     ProjectLimitReached, DuplicateProjectName, ValidationError, ProjectNotFound,
     TaskLimitReached, TaskNotFound
 )
 
-_repo = ProjectRepository()
-_task_repo = TaskRepository()
+# _repo = ProjectRepository()
+# _task_repo = TaskRepository()
+_repo = InMemoryProjectRepository()
+_task_repo = InMemoryTaskRepository()
 
 _service = ProjectService(_repo, cascade_delete_tasks=_task_repo.delete_by_project)
 _task_service = TaskService(project_repo=_repo, task_repo=_task_repo)
@@ -252,6 +255,17 @@ def action_list_project_tasks() -> None:
             print(f"- #{t.id} | [{t.status}] {t.title}  —  deadline: {d}")
     _pause()
 
+def action_reset_memory() -> None:
+    global _repo, _task_repo, _service, _task_service
+    # reinitialize all in-memory stores
+    # _repo = ProjectRepository()
+    # _task_repo = TaskRepository()
+    _repo = InMemoryProjectRepository()
+    _task_repo = InMemoryTaskRepository()
+    _service = ProjectService(_repo, cascade_delete_tasks=_task_repo.delete_by_project)
+    _task_service = TaskService(project_repo=_repo, task_repo=_task_repo)
+    print("\n[ok] in-memory state reset (projects & tasks cleared)")
+    _pause()
 
 def main() -> None:
     actions: dict[str, tuple[str, Callable[[], None]]] = {
@@ -265,6 +279,7 @@ def main() -> None:
         "8": ("Edit task", action_edit_task),
         "9": ("Delete task", action_delete_task),
         "10": ("List tasks of a project", action_list_project_tasks),
+        "99": ("[DEV] Reset in-memory state", action_reset_memory),
         "0": ("Exit", action_exit),
     }
 
