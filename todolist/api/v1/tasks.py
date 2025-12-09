@@ -249,3 +249,44 @@ def delete_task_for_project(
 
     # 204: no body
     return None
+
+
+@router.get(
+    "/{task_id}",
+    response_model=TaskRead,
+    summary="Get a single task in a project",
+    description="Return one task by id, ensuring it belongs to the given project.",
+)
+def get_task_for_project(
+    project_id: int,
+    task_id: int,
+    service: TaskService = Depends(get_task_service),
+):
+    """
+    Fetch one task using TaskService.get_task_for_project(project_id, task_id)
+    and map it to the TaskRead schema.
+    """
+    try:
+        core_task = service.get_task_for_project(project_id=project_id, task_id=task_id)
+    except TaskNotFound as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        )
+    except ValidationError as exc:
+        # task exists but doesn't belong to this project
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
+    return TaskRead(
+        id=core_task.id,
+        title=core_task.title,
+        description=core_task.description,
+        status=core_task.status,
+        deadline=core_task.deadline,
+        project_id=core_task.project_id,
+        created_at=core_task.created_at,
+        closed_at=None,  # domain Task doesn't track this; we expose null
+    )

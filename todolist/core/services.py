@@ -225,3 +225,18 @@ class TaskService:
         if not self.projects.get_by_id(project_id):
             raise ProjectNotFound(f"project id {project_id} not found")
         return sorted(self.tasks.all_for_project(project_id), key=lambda t: t.created_at)
+
+
+    def get_task_for_project(self, project_id: int, task_id: int) -> Task:
+        """Return a single task by id, ensuring it belongs to the given project."""
+        t = self.tasks.get_by_id(task_id)
+        if not t:
+            raise TaskNotFound(f"task id {task_id} not found")
+
+        if t.project_id != project_id:
+            # must match the same project according to acceptance criteria
+            raise ValidationError(
+                f"task #{task_id} does not belong to project #{project_id}"
+            )
+
+        return t
