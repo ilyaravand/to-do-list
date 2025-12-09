@@ -6,10 +6,14 @@ from sqlalchemy.orm import Session
 
 from todolist.db.session import SessionLocal
 from todolist.core.services import TaskService
-from todolist.core.errors import ProjectNotFound
+from todolist.core.errors import (
+    ProjectNotFound,
+    TaskLimitReached,
+    ValidationError,
+)
 from todolist.repositories.sqlalchemy_task import SqlAlchemyTaskRepository
-from todolist.schemas.task import TaskRead
-
+from todolist.schemas.task import TaskCreate, TaskRead, TaskUpdate  # TaskUpdate for later
+from todolist.repositories.sqlalchemy_project import SqlAlchemyProjectRepository
 
 
 router = APIRouter(
@@ -98,3 +102,58 @@ def list_tasks_for_project(
             )
         )
     return result
+
+
+@router.post(
+    "/",
+    response_model=TaskRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new task in a project",
+    description="Create a task inside the given project with title, optional description, status and deadline.",
+)
+def create_task_for_project(
+    project_id: int,
+    payload: TaskCreate,
+    service: TaskService = Depends(get_task_service),
+):
+    """
+    Create a task using the existing TaskService.create_task business logic.
+    """
+    try:
+        core_task = service.create_task(
+            project_id=project_id,
+            title=payload.title,
+            description=payload.description or "",
+            status=payload.status.value if payload.status is not None else None,
+            deadline=payload.deadline,  # TaskService can handle date or str
+        )
+    except ProjectNotFound as exc:
+        # project does not exist
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        )
+    except TaskLimitReached as exc:
+        # reached MAX_NUMBER_OF_TASK
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        )
+    except ValidationError as exc:
+        # invalid status, title too long, description too long, bad deadline, etc.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
+    # Map core Task -> TaskRead
+    return TaskRead(
+        id=core_task.id,
+        title=core_task.title,
+        description=core_task.description,
+        status=core_task.status,
+        deadline=core_task.deadline,
+        project_id=core_task.project_id,
+        created_at=core_task.created_at,
+        closed_at=None,  # core Task doesn't track this; fine to expose as null
+    )

@@ -29,12 +29,6 @@ class TaskBase(BaseModel):
         description="Optional deadline for the task (YYYY-MM-DD).",
         example="2025-12-31",
     )
-    project_id: int = Field(
-        ...,
-        description="ID of the project this task belongs to.",
-        example=1,
-        ge=1,
-    )
 
 
 # ---------- Create ----------
@@ -59,20 +53,21 @@ class TaskUpdate(BaseModel):
     description: Optional[constr(max_length=4000)] = None
     status: Optional[TaskStatusEnum] = None
     deadline: Optional[datetime] = None
-    project_id: Optional[int] = Field(
-        default=None,
-        ge=1,
-        description="If provided, reassigns the task to another project.",
-    )
 
 
 # ---------- Read / Response ----------
 class TaskRead(TaskBase):
     """
     How a task is returned from the API.
-    This includes read-only fields like id, created_at and closed_at.
+    Includes read-only fields like id, project_id, created_at, closed_at.
     """
     id: int = Field(..., description="Primary key of the task.")
+    project_id: int = Field(
+        ...,
+        description="ID of the project this task belongs to.",
+        example=1,
+        ge=1,
+    )
     created_at: datetime = Field(
         ...,
         description="When the task was created (server timestamp).",
