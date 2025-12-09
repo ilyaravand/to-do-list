@@ -12,7 +12,7 @@ python-dotenv = "^1.1.1"
 sqlalchemy = ">=2.0"
 alembic = "^1.17.2"
 psycopg2-binary = ">=2.9"
-
+schedule = "^1.2.1"
 
 [build-system]
 requires = ["poetry-core"]
@@ -21,3 +21,6 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 todo = "todolist.interface.cli:main"
+todolist-autoclose = "todolist.commands.autoclose_overdue:main"
+todolist-db-cli = "todolist.interface.db_cli:main"
+todolist-autoclose-scheduler = "todolist.commands.autoclose_scheduler:main"
