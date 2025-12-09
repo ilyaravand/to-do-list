@@ -83,3 +83,13 @@ class TaskRead(TaskBase):
         # orm_mode = True
         # For Pydantic v2 you can also use:
         # from_attributes = True
+
+class TaskStatusUpdate(BaseModel):
+    """
+    Payload for endpoints that only change the status of a task.
+    """
+    status: TaskStatusEnum = Field(
+        ...,
+        description="New status for the task: todo / doing / done.",
+        example="doing",
+    )

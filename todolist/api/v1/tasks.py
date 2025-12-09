@@ -13,7 +13,7 @@ from todolist.core.errors import (
     TaskNotFound,
 )
 from todolist.repositories.sqlalchemy_task import SqlAlchemyTaskRepository
-from todolist.schemas.task import TaskCreate, TaskRead, TaskUpdate
+from todolist.schemas.task import TaskCreate, TaskRead, TaskUpdate, TaskStatusUpdate
 from todolist.repositories.sqlalchemy_project import SqlAlchemyProjectRepository
 
 
@@ -289,4 +289,54 @@ def get_task_for_project(
         project_id=core_task.project_id,
         created_at=core_task.created_at,
         closed_at=None,  # domain Task doesn't track this; we expose null
+    )
+
+@router.patch(
+    "/{task_id}/status",
+    response_model=TaskRead,
+    summary="Change status of a task",
+    description="Change the status of a task to todo / doing / done.",
+)
+def set_task_status_for_project(
+    project_id: int,
+    task_id: int,
+    payload: TaskStatusUpdate,
+    service: TaskService = Depends(get_task_service),
+):
+    """
+    Change the status of a task using TaskService.set_task_status.
+
+    We first ensure the task belongs to the given project,
+    then we call set_task_status for the actual update.
+    """
+    try:
+        # ensure task exists and belongs to this project
+        service.get_task_for_project(project_id=project_id, task_id=task_id)
+
+        # now update the status
+        core_task = service.set_task_status(
+            task_id=task_id,
+            status=payload.status.value,  # TaskStatusEnum -> "todo"/"doing"/"done"
+        )
+    except TaskNotFound as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        )
+    except ValidationError as exc:
+        # invalid status or other business rule
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
+    return TaskRead(
+        id=core_task.id,
+        title=core_task.title,
+        description=core_task.description,
+        status=core_task.status,
+        deadline=core_task.deadline,
+        project_id=core_task.project_id,
+        created_at=core_task.created_at,
+        closed_at=None,
     )
