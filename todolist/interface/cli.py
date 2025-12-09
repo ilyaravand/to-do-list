@@ -267,38 +267,55 @@ def action_reset_memory() -> None:
     print("\n[ok] in-memory state reset (projects & tasks cleared)")
     _pause()
 
-def main() -> None:
-    actions: dict[str, tuple[str, Callable[[], None]]] = {
-        "1": ("Create project", action_create_project),
-        "2": ("List projects", action_list_projects),
-        "3": ("Show info (limit & count)", action_info),
-        "4": ("Edit project", action_edit_project),
-        "5": ("Delete project", action_delete_project),
-        "6": ("Add task", action_add_task),
-        "7": ("Change task status", action_change_task_status),
-        "8": ("Edit task", action_edit_task),
-        "9": ("Delete task", action_delete_task),
-        "10": ("List tasks of a project", action_list_project_tasks),
-        "99": ("[DEV] Reset in-memory state", action_reset_memory),
-        "0": ("Exit", action_exit),
-    }
+# def main() -> None:
+#     actions: dict[str, tuple[str, Callable[[], None]]] = {
+#         "1": ("Create project", action_create_project),
+#         "2": ("List projects", action_list_projects),
+#         "3": ("Show info (limit & count)", action_info),
+#         "4": ("Edit project", action_edit_project),
+#         "5": ("Delete project", action_delete_project),
+#         "6": ("Add task", action_add_task),
+#         "7": ("Change task status", action_change_task_status),
+#         "8": ("Edit task", action_edit_task),
+#         "9": ("Delete task", action_delete_task),
+#         "10": ("List tasks of a project", action_list_project_tasks),
+#         "99": ("[DEV] Reset in-memory state", action_reset_memory),
+#         "0": ("Exit", action_exit),
+#     }
+#
+#     try:
+#         while True:
+#             print("\n" + _line())
+#             print("To-Do CLI — Menu")
+#             print(_line())
+#             for key, (label, _) in actions.items():
+#                 print(f" {key}) {label}")
+#             choice = input("\nSelect an option: ").strip()
+#             action = actions.get(choice)
+#             if action:
+#                 action[1]()  # call the function
+#             else:
+#                 print("[error] Invalid choice. Try again.")
+#     except KeyboardInterrupt:
+#         print("\n\nInterrupted. Exiting…")
+#         sys.exit(130)
 
-    try:
-        while True:
-            print("\n" + _line())
-            print("To-Do CLI — Menu")
-            print(_line())
-            for key, (label, _) in actions.items():
-                print(f" {key}) {label}")
-            choice = input("\nSelect an option: ").strip()
-            action = actions.get(choice)
-            if action:
-                action[1]()  # call the function
-            else:
-                print("[error] Invalid choice. Try again.")
-    except KeyboardInterrupt:
-        print("\n\nInterrupted. Exiting…")
-        sys.exit(130)
+# todolist/interface/cli.py
+
+def main() -> None:
+    """
+    Deprecated CLI entry point.
+
+    Phase 3 requirement: the primary interface is now the HTTP API.
+    """
+    message = (
+        "This CLI is deprecated and no longer supported.\n\n"
+        "Please use the HTTP API instead:\n"
+        "  poetry run uvicorn todolist.main:app --reload\n\n"
+        "Then open the automatic documentation in your browser:\n"
+        "  http://127.0.0.1:8000/docs\n"
+    )
+    print(message)
 
 
 if __name__ == "__main__":
