@@ -73,7 +73,14 @@ def list_tasks_for_project(
     - Service uses TaskRepository (SQLAlchemy) to fetch core Task objects
     - We map those core Task objects into Pydantic TaskRead models for the API response
     """
-    core_tasks = service.list_tasks_for_project(project_id)
+    try:
+        core_tasks = service.list_tasks_for_project(project_id)
+    except ProjectNotFound as exc:
+        # Translate domain-level error to HTTP 404
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        )
 
     # Map from core Task (domain) -> Pydantic TaskRead (API schema)
     result: List[TaskRead] = []
@@ -84,10 +91,10 @@ def list_tasks_for_project(
                 title=t.title,
                 description=t.description,
                 status=t.status,
-                deadline=t.deadline,      # core uses date, schema uses date ✔
+                deadline=t.deadline,
                 project_id=t.project_id,
                 created_at=t.created_at,
-                closed_at=None,          # core model doesn’t track closed_at, fine to expose as null
+                closed_at=getattr(t, "closed_at", None),  # safe in case domain Task lacks this
             )
         )
     return result
