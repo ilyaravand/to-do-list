@@ -316,7 +316,7 @@ def set_task_status_for_project(
         # now update the status
         core_task = service.set_task_status(
             task_id=task_id,
-            status=payload.status.value,  # TaskStatusEnum -> "todo"/"doing"/"done"
+            status=payload.status.value,
         )
     except TaskNotFound as exc:
         raise HTTPException(
