@@ -13,6 +13,8 @@ sqlalchemy = ">=2.0"
 alembic = "^1.17.2"
 psycopg2-binary = ">=2.9"
 schedule = "^1.2.1"
+fastapi = "^0.124.0"
+uvicorn = {extras = ["standard"], version = "^0.38.0"}
 
 [build-system]
 requires = ["poetry-core"]
