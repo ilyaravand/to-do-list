@@ -214,3 +214,38 @@ def update_task_for_project(
         created_at=core_task.created_at,
         closed_at=None,   # domain Task doesn’t track this; ok to expose as null
     )
+
+
+@router.delete(
+    "/{task_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a task from a project",
+    description="Delete a task by id within the given project.",
+)
+def delete_task_for_project(
+    project_id: int,
+    task_id: int,
+    service: TaskService = Depends(get_task_service),
+):
+    """
+    Delete a task using TaskService.delete_task(project_id, task_id).
+
+    - If task doesn't exist -> TaskNotFound -> 404
+    - If task belongs to another project -> ValidationError -> 400
+    """
+    try:
+        service.delete_task(project_id=project_id, task_id=task_id)
+    except TaskNotFound as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        )
+    except ValidationError as exc:
+        # e.g. "task #X does not belong to project #Y"
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
+    # 204: no body
+    return None
