@@ -1,7 +1,74 @@
+from __future__ import annotations
+from abc import ABC, abstractmethod
 from typing import Dict, Iterable, Optional, Set
 from .models import Project, Task
 
-class ProjectRepository:
+
+class ProjectRepository(ABC):
+    """Abstract interface for project persistence."""
+
+    @abstractmethod
+    def add(self, p: Project) -> Project: ...
+
+    @abstractmethod
+    def get_by_name(self, name: str) -> Optional[Project]: ...
+
+    @abstractmethod
+    def get_by_id(self, pid: int) -> Optional[Project]: ...
+
+    @abstractmethod
+    def count(self) -> int: ...
+
+    @abstractmethod
+    def all(self) -> Iterable[Project]: ...
+
+    @abstractmethod
+    def update(
+        self,
+        p: Project,
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> Project: ...
+
+    @abstractmethod
+    def delete(self, pid: int) -> bool: ...
+
+
+class TaskRepository(ABC):
+    """Abstract interface for task persistence."""
+
+    @abstractmethod
+    def add(self, t: Task) -> Task: ...
+
+    @abstractmethod
+    def get_by_id(self, tid: int) -> Optional[Task]: ...
+
+    @abstractmethod
+    def all_for_project(self, project_id: int) -> Iterable[Task]: ...
+
+    @abstractmethod
+    def count(self) -> int: ...
+
+    @abstractmethod
+    def delete_by_project(self, project_id: int) -> int: ...
+
+    @abstractmethod
+    def update(
+        self,
+        t: Task,
+        *,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        status: Optional[str] = None,
+        deadline=None,
+    ) -> Task: ...
+
+    @abstractmethod
+    def delete(self, task_id: int) -> bool: ...
+
+
+class InMemoryProjectRepository(ProjectRepository):
     def __init__(self) -> None:
         self._by_id: Dict[int, Project] = {}
         self._by_name: Dict[str, int] = {}
@@ -24,8 +91,13 @@ class ProjectRepository:
     def all(self) -> Iterable[Project]:
         return self._by_id.values()
 
-    def update(self, p: Project, *, name: Optional[str] = None,
-               description: Optional[str] = None) -> Project:
+    def update(
+        self,
+        p: Project,
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> Project:
         if name is not None and name.lower() != p.name.lower():
             # update name index
             self._by_name.pop(p.name.lower(), None)
@@ -46,7 +118,7 @@ class ProjectRepository:
         self._by_name.pop(p.name.lower(), None)
         return True
 
-class TaskRepository:
+class InMemoryTaskRepository(TaskRepository):
     def __init__(self) -> None:
         self._by_id: Dict[int, Task] = {}
         self._by_project: Dict[int, Set[int]] = {}
@@ -74,7 +146,15 @@ class TaskRepository:
             self._by_id.pop(tid, None)
         return len(ids)
 
-    def update(self, t: Task, *, title=None, description=None, status=None, deadline=None) -> Task:
+    def update(
+        self,
+        t: Task,
+        *,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        status: Optional[str] = None,
+        deadline=None,
+    ) -> Task:
         if title is not None:
             t.title = title
         if description is not None:
