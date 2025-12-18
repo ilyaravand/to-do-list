@@ -37,3 +37,5 @@ htmlcov/
 # Keep template env files in git
 !.env.example
 !.env.*.example
+/postman
+/.postman
